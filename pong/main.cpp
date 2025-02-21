@@ -3,16 +3,22 @@
 //linker::input::additional dependensies Msimg32.lib; Winmm.lib
 
 #include "windows.h"
-
+#include <cmath>
 // секция данных игры  
 typedef struct {
     float x, y, width, height, rad, dx, dy, speed;
     HBITMAP hBitmap;//хэндл к спрайту шарика 
+    bool status;
 } sprite;
 
 sprite racket;//ракетка игрока
-sprite enemy;//ракетка противника
+//sprite enemy;//ракетка противника
 sprite ball;//шарик
+
+const int brikscountx = 10;
+const int brikscounty = 30;
+
+sprite briks[brikscountx][brikscounty];
 
 struct {
     int score, balls;//количество набранных очков и оставшихся "жизней"
@@ -36,7 +42,7 @@ void InitGame()
     //результат работы LoadImageA сохраняет в хэндлах битмапов, рисование спрайтов будет произовдиться с помощью этих хэндлов
     ball.hBitmap = (HBITMAP)LoadImageA(NULL, "ball.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
     racket.hBitmap = (HBITMAP)LoadImageA(NULL, "racket.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-    enemy.hBitmap = (HBITMAP)LoadImageA(NULL, "racket_enemy.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+    //enemy.hBitmap = (HBITMAP)LoadImageA(NULL, "racket_enemy.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
     hBack = (HBITMAP)LoadImageA(NULL, "back.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
     //------------------------------------------------------
 
@@ -46,11 +52,25 @@ void InitGame()
     racket.x = window.width / 2.;//ракетка посередине окна
     racket.y = window.height - racket.height;//чуть выше низа экрана - на высоту ракетки
 
-    enemy.x = racket.x;//х координату оппонета ставим в ту же точку что и игрока
+    for (int i = 0; i < brikscountx; i++)
+    {
+        for (int j= 0; j< brikscounty;j++)
+        {
+            briks[i][j].width = window.width / brikscountx;
+            briks[i][j].height = window.height / (brikscounty * 3);
+            briks[i][j].y = briks[i][j].height*j + window.height/3;
+            briks[i][j].x = briks[i][j].width*i;
+            briks[i][j].hBitmap = racket.hBitmap;
+            briks[i][j].status = true;
+            
+        }
+    }
+
+    //enemy.x = racket.x;//х координату оппонета ставим в ту же точку что и игрока
 
     ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 11;
+    ball.speed = 30;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -63,7 +83,7 @@ void InitGame()
 
 void ProcessSound(const char* name)//проигрывание аудиофайла в формате .wav, файл должен лежать в той же папке где и программа
 {
-    PlaySound(TEXT(name), NULL, SND_FILENAME | SND_ASYNC);//переменная name содежрит имя файла. флаг ASYNC позволяет проигрывать звук паралельно с исполнением программы
+    //PlaySound(TEXT(name), NULL, SND_FILENAME | SND_ASYNC);//переменная name содежрит имя файла. флаг ASYNC позволяет проигрывать звук паралельно с исполнением программы
 }
 
 void ShowScore()
@@ -129,18 +149,32 @@ void ShowRacketAndBall()
 {
     ShowBitmap(window.context, 0, 0, window.width, window.height, hBack);//задний фон
     ShowBitmap(window.context, racket.x - racket.width / 2., racket.y, racket.width, racket.height, racket.hBitmap);// ракетка игрока
-
-    if (ball.dy < 0 && (enemy.x - racket.width / 4 > ball.x || ball.x > enemy.x + racket.width / 4))
+    for (int i = 0; i < brikscountx; i++)
     {
-        //имитируем разумность оппонента. на самом деле, компьютер никогда не проигрывает, и мы не считаем попадает ли его ракетка по шарику
-        //вместо этого, мы всегда делаем отскок от потолка, а раектку противника двигаем - подставляем под шарик
-        //движение будет только если шарик летит вверх, и только если шарик по оси X выходит за пределы половины длины ракетки
-        //в этом случае, мы смешиваем координаты ракетки и шарика в пропорции 9 к 1
-        enemy.x = ball.x * .1 + enemy.x * .9;
+        for (int j = 0; j < brikscounty;j++)
+        {
+            if (briks[i][j].status)
+            {
+                ShowBitmap(window.context, briks[i][j].x, briks[i][j].y, briks[i][j].width, briks[i][j].height, briks[i][j].hBitmap);
+            }
+
+        }
     }
 
-    ShowBitmap(window.context, enemy.x - racket.width / 2, 0, racket.width, racket.height, enemy.hBitmap);//ракетка оппонента
+    //if (ball.dy < 0 && (enemy.x - racket.width / 4 > ball.x || ball.x > enemy.x + racket.width / 4))
+    //{
+    //    //имитируем разумность оппонента. на самом деле, компьютер никогда не проигрывает, и мы не считаем попадает ли его ракетка по шарику
+    //    //вместо этого, мы всегда делаем отскок от потолка, а раектку противника двигаем - подставляем под шарик
+    //    //движение будет только если шарик летит вверх, и только если шарик по оси X выходит за пределы половины длины ракетки
+    //    //в этом случае, мы смешиваем координаты ракетки и шарика в пропорции 9 к 1
+    //    enemy.x = ball.x * .1 + enemy.x * .9;
+    //}
+
+    //ShowBitmap(window.context, enemy.x - racket.width / 2, 0, racket.width, racket.height, enemy.hBitmap);//ракетка оппонента
     ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
+
+
+    
 }
 
 void LimitRacket()
@@ -160,7 +194,7 @@ void CheckWalls()
 
 void CheckRoof()
 {
-    if (ball.y < ball.rad + racket.height)
+    if (ball.y < ball.rad)
     {
         ball.dy *= -1;
         ProcessSound("bounce.wav");
@@ -179,7 +213,7 @@ void CheckFloor()
             ball.speed += 5. / game.score;//но увеличиваем сложность - прибавляем скорости шарику
             ball.dy *= -1;//отскок
             racket.width -= 10. / game.score;//дополнительно уменьшаем ширину ракетки - для сложности
-            ProcessSound("bounce.wav");//играем звук отскока
+            //ProcessSound("bounce.wav");//играем звук отскока
         }
         else
         {//шарик не отбит
@@ -212,9 +246,66 @@ void CheckFloor()
 void ProcessRoom()
 {
     //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
+    
+    for (int i = 0; i < brikscountx; i++)
+    {
+        for (int j = 0; j < brikscounty;j++)
+        {
+                    int s = sqrt( pow(ball.dx * ball.speed, 2) + pow(ball.dy * ball.speed, 2));
+         
+                    for (float k = 0; k < s; k++) 
+                    {
+                        float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
+                        float bally = ball.y + k * ball.dy * ball.speed / (float)s;
+                        SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
+                         
+                        if ((briks[i][j].y < bally) and (bally < briks[i][j].y + briks[i][j].height) and
+                            (briks[i][j].x < ballx) and (ballx < briks[i][j].x + briks[i][j].width))
+                        { 
+
+                            if (briks[i][j].status)
+                            {
+
+                                int dx1 = ballx - briks[i][j].x;
+                                int dx2 = briks[i][j].x - ballx + briks[i][j].width;
+                                int dy1 = bally - briks[i][j].y;
+                                int dy2 = briks[i][j].y - bally + briks[i][j].height;
+
+
+                                if ((min(dx1, dx2) > min(dy1, dy2))) {
+                                    ball.dy *= -1;
+                                    briks[i][j].status = false;
+                                }
+                                else {
+                                    ball.dx *= -1;
+                                    briks[i][j].status = false;
+                                }
+                                return;
+                            }
+                        }
+                    }
+                   
+                    
+                
+            }
+
+            /*if ((briks[i][j].y < ball.y) and (ball.y < briks[i][j].y + briks[i][j].height) and
+                (briks[i][j].x-1 < ball.x+ ball.rad) and (ball.x- ball.rad < briks[i][j].x+1 + briks[i][j].width))
+            {
+                if (briks[i][j].status)
+                {
+                    ball.dx *= -1;
+                    briks[i][j].status = false;
+                }
+            }*/
+            
+        }
+    
+    
     CheckWalls();
     CheckRoof();
     CheckFloor();
+
 }
 
 void ProcessBall()
@@ -257,20 +348,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     InitWindow();//здесь инициализируем все что нужно для рисования в окне
     InitGame();//здесь инициализируем переменные игры
 
-    mciSendString(TEXT("play ..\\Debug\\music.mp3 repeat"), NULL, 0, NULL);
+    //mciSendString(TEXT("play ..\\Debug\\music.mp3 repeat"), NULL, 0, NULL);
     ShowCursor(NULL);
     
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         ShowRacketAndBall();//рисуем фон, ракетку и шарик
         ShowScore();//рисуем очик и жизни
-        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
-        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
-
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
-        ProcessBall();//перемещаем шарик
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
+        ProcessBall();//перемещаем шарик
+        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
+        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
     }
 
 }
