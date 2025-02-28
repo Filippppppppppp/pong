@@ -18,14 +18,16 @@ struct {
 struct sprite {
     float x, y, width, height, rad, dx, dy, speed;
     HBITMAP hBitmap;//хэндл к спрайту шарика 
+    HBITMAP hBitmap2;//хэндл к спрайту шарика
     bool status;
+    bool color = false;
 
     void Load(const char* name)
     {
         hBitmap = (HBITMAP)LoadImageA(NULL, name, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
     }
     void Show() {
-        ShowBitmap(x, y, width, height, hBitmap);
+        ShowBitmap(x, y, width, height, color ? hBitmap2 : hBitmap);
     }
 };
 
@@ -33,8 +35,8 @@ sprite racket;//ракетка игрока
 //sprite enemy;//ракетка противника
 sprite ball;//шарик
 
-const int brikscountx = 10;
-const int brikscounty = 30;
+const int brikscountx = 20;
+const int brikscounty = 4;
 
 sprite briks[brikscountx][brikscounty];
 
@@ -54,6 +56,7 @@ void InitGame()
     //пути относительные - файлы должны лежать рядом с .exe 
     //результат работы LoadImageA сохраняет в хэндлах битмапов, рисование спрайтов будет произовдиться с помощью этих хэндлов
     ball.Load("ball.bmp");
+    //ball.Load("racket_enemy.bmp");
     
     racket.hBitmap = (HBITMAP)LoadImageA(NULL, "racket.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
     //enemy.hBitmap = (HBITMAP)LoadImageA(NULL, "racket_enemy.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
@@ -76,7 +79,8 @@ void InitGame()
             briks[i][j].x = briks[i][j].width*i;
             briks[i][j].hBitmap = racket.hBitmap;
             briks[i][j].status = true;
-            
+            briks[i][j].color = false;
+            briks[i][j].hBitmap2 = (HBITMAP)LoadImageA(NULL, "racket_enemy.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
         }
     }
 
@@ -84,7 +88,7 @@ void InitGame()
 
     ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 30;
+    ball.speed = 10;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -256,73 +260,97 @@ void CheckFloor()
         }
     }
 }
+float sign(float x) {
+    if (x > 0) return 1;
+    if (x < 0) return -1;
+    else return 0;
+ }
+void swap(int& a, int& b)
+{
+    int c;
+    c = a;
+    a = b;
+    b = c;
+}
 
 void ProcessRoom()
 {
+    for (int i = 0;i < brikscountx;i++)
+    {
+        for (int j = 0;j < brikscounty;j++)
+        {
+            briks[i][j].color = false;
+        }
+    }
+
     //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
     int s = sqrt(pow(ball.dx * ball.speed, 2) + pow(ball.dy * ball.speed, 2));
     for (float k = 0; k < s; k++) 
     {
-            
-            int start_i = ball.x/ briks[0][0].width;
-            int finish_i = brikscountx;
-            if (ball.dx < 0)
-            {
-                finish_i = min(start_i+1, brikscountx);
-                start_i = 0;
-            }
-            for (int i = start_i; i < finish_i; i++)
-            {
-                int start_j = 0;
-                int finish_j = brikscounty;
+        float l = ceil(sqrt(pow(ball.dx, 2) + pow(ball.dy, 2)));
+        int start_i = ball.x/ briks[0][0].width;
+        int finish_i = (sign(ball.dx) * l + ball.x) / briks[0][0].width;
+       
+        if (ball.dx < 0)
+        {
+            swap(start_i, finish_i);
 
-                start_j = (ball.y - window.height / 3 )/ briks[0][0].height;
+            finish_i = min(start_i+1, brikscountx);
 
-                start_j = min(start_j, brikscounty);
-                start_j = max(start_j, 0);
+        }
+        for (int i = start_i; i < finish_i; i++)
+        {
+            int start_j = 0;
+            int finish_j = (sign(ball.dy) * l + ball.y) / briks[0][0].height;
+
+            start_j = (ball.y - window.height / 3 )/ briks[0][0].height;
+            start_j = min(start_j, brikscounty);
+            start_j = max(start_j, 0);
 
               
-                if (ball.dy < 0)
-                {
-                    finish_j = min(start_j+1, brikscounty);
-                    start_j = 0;
-                }
+            if (ball.dy < 0)
+            {
+                swap(start_j, finish_j);
+                finish_j = min(start_j+1, brikscounty);
+          
+            }
 
-                //start_j = 0;
-                //finish_j = brikscounty;
+            //start_j = 0;
+            //finish_j = brikscounty;
 
-                for (int j = start_j; j < finish_j;j++)
-                {  
+            for (int j = start_j; j < finish_j;j++)
+            {  
                    
-                   float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
-                   float bally = ball.y + k * ball.dy * ball.speed / (float)s;
-                   SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
+                briks[i][j].color = true;
+                float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
+                float bally = ball.y + k * ball.dy * ball.speed / (float)s;
+                SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
                          
-                   if ((briks[i][j].y < bally) and (bally < briks[i][j].y + briks[i][j].height) and
-                      (briks[i][j].x < ballx) and (ballx < briks[i][j].x + briks[i][j].width))
-                   { 
+                if ((briks[i][j].y < bally) and (bally < briks[i][j].y + briks[i][j].height) and
+                    (briks[i][j].x < ballx) and (ballx < briks[i][j].x + briks[i][j].width))
+                { 
 
-                       if (briks[i][j].status)
-                       {
-                           int dx1 = ballx - briks[i][j].x;
-                           int dx2 = briks[i][j].x - ballx + briks[i][j].width;
-                           int dy1 = bally - briks[i][j].y;
-                           int dy2 = briks[i][j].y - bally + briks[i][j].height;
+                    if (briks[i][j].status)
+                    {
+                        int dx1 = ballx - briks[i][j].x;
+                        int dx2 = briks[i][j].x - ballx + briks[i][j].width;
+                        int dy1 = bally - briks[i][j].y;
+                        int dy2 = briks[i][j].y - bally + briks[i][j].height;
 
-                           if ((min(dx1, dx2) > min(dy1, dy2)))
-                           {
-                                ball.dy *= -1;
-                                briks[i][j].status = false;
-                           }
+                        if ((min(dx1, dx2) > min(dy1, dy2)))
+                        {
+                            ball.dy *= -1;
+                            briks[i][j].status = false;
+                        }
                     
-                           else {
-                                ball.dx *= -1;
-                                briks[i][j].status = false;
-                           }
-                           return;
-                       }
-                   }
+                        else {
+                            ball.dx *= -1;
+                            briks[i][j].status = false;
+                        }
+                        return;
+                    }
                 }
+            }
     }
 
 
@@ -395,7 +423,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
-        ProcessBall();//перемещаем шарик
+        //ProcessBall();//перемещаем шарик
+
+        POINT p;
+        GetCursorPos(&p);
+        ScreenToClient(window.hWnd, &p);
+        ball.x = p.x;
+        ball.y = p.y;
+
         BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
         Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
     }
