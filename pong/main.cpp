@@ -86,9 +86,9 @@ void InitGame()
 
     //enemy.x = racket.x;//х координату оппонета ставим в ту же точку что и игрока
 
-    ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
+    ball.dy = -(rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 10;
+    ball.speed = 100;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -287,44 +287,54 @@ void ProcessRoom()
     int s = sqrt(pow(ball.dx * ball.speed, 2) + pow(ball.dy * ball.speed, 2));
     for (float k = 0; k < s; k++) 
     {
-        float l = ceil(sqrt(pow(ball.dx, 2) + pow(ball.dy, 2)));
+        float l = ceil(sqrt(pow(ball.dx * ball.speed, 2) + pow(ball.dy * ball.speed, 2)));
         int start_i = ball.x/ briks[0][0].width;
         int finish_i = (sign(ball.dx) * l + ball.x) / briks[0][0].width;
        
         if (ball.dx < 0)
         {
-            swap(start_i, finish_i);
+            if (finish_i > start_i) {
+                swap(start_i, finish_i);
+            }
 
             finish_i = min(start_i+1, brikscountx);
 
         }
-        for (int i = start_i; i < finish_i; i++)
+        start_i = max(start_i, 0);
+
+         for (int i = start_i; i < finish_i; i++)
         {
             int start_j = 0;
-            int finish_j = (sign(ball.dy) * l + ball.y) / briks[0][0].height;
+            //int finish_j = brikscounty;
+            int finish_j = (sign(ball.dy) * l + max(ball.y - window.height / 3,0)) / briks[0][0].height;
+           // finish_j = min(finish_j, brikscounty);
 
             start_j = (ball.y - window.height / 3 )/ briks[0][0].height;
-            start_j = min(start_j, brikscounty);
+             start_j = min(start_j, brikscounty);
             start_j = max(start_j, 0);
+
 
               
             if (ball.dy < 0)
+
             {
-                swap(start_j, finish_j);
-                finish_j = min(start_j+1, brikscounty);
-          
+                if (finish_j > start_j) {
+                    swap(start_j, finish_j);
+                }
+                finish_j = min(start_j, brikscounty);
+                finish_j = max(finish_j+1, 0);
             }
 
             //start_j = 0;
             //finish_j = brikscounty;
-
+            float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
+            float bally = ball.y + k * ball.dy * ball.speed / (float)s;
+            SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
             for (int j = start_j; j < finish_j;j++)
             {  
                    
                 briks[i][j].color = true;
-                float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
-                float bally = ball.y + k * ball.dy * ball.speed / (float)s;
-                SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
+
                          
                 if ((briks[i][j].y < bally) and (bally < briks[i][j].y + briks[i][j].height) and
                     (briks[i][j].x < ballx) and (ballx < briks[i][j].x + briks[i][j].width))
@@ -339,13 +349,13 @@ void ProcessRoom()
 
                         if ((min(dx1, dx2) > min(dy1, dy2)))
                         {
-                            ball.dy *= -1;
-                            briks[i][j].status = false;
+                          //  ball.dy *= -1;
+                          //  briks[i][j].status = false;
                         }
                     
                         else {
-                            ball.dx *= -1;
-                            briks[i][j].status = false;
+                         //   ball.dx *= -1;
+                           // briks[i][j].status = false;
                         }
                         return;
                     }
