@@ -310,28 +310,27 @@ void ProcessRoom()
            // finish_j = min(finish_j, brikscounty);
 
             start_j = (ball.y - window.height / 3 )/ briks[0][0].height;
-             start_j = min(start_j, brikscounty);
-            start_j = max(start_j, 0);
+            start_j = min(start_j, brikscounty);
 
-
-              
             if (ball.dy < 0)
 
             {
-                if (finish_j > start_j) {
+                if (finish_j < start_j) {
                     swap(start_j, finish_j);
                 }
                 finish_j = min(start_j, brikscounty);
-                finish_j = max(finish_j+1, 0);
+                //finish_j = max(finish_j+1, 0);
             }
-
+            //finish_j = max(finish_j + 1, 0);
+            start_j = max(start_j, 0);
             //start_j = 0;
             //finish_j = brikscounty;
-            float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
-            float bally = ball.y + k * ball.dy * ball.speed / (float)s;
-            SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
-            for (int j = start_j; j < finish_j;j++)
+            
+            for (int j = start_j; j < finish_j+1;j++)
             {  
+                float ballx = ball.x + k * ball.dx * ball.speed / (float)s;
+                float bally = ball.y + k * ball.dy * ball.speed / (float)s;
+                SetPixel(window.context, ballx, bally, RGB(0xff, 0xff, 0xff));
                    
                 briks[i][j].color = true;
 
