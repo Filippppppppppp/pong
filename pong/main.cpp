@@ -306,25 +306,29 @@ void ProcessRoom()
         {
             int start_j = 0;
             //int finish_j = brikscounty;
-            int finish_j = (sign(ball.dy) * l + max(ball.y - window.height / 3,0)) / briks[0][0].height;
+            int finish_j = (sign(ball.dy) * l + (ball.y - window.height / 3)) / briks[0][0].height;
            // finish_j = min(finish_j, brikscounty);
 
             start_j = (ball.y - window.height / 3 )/ briks[0][0].height;
             start_j = min(start_j, brikscounty);
-
+            //ball.dy *= -1;
             if (ball.dy < 0)
-
             {
+                finish_j += 1;
                 if (finish_j < start_j) {
                     swap(start_j, finish_j);
                 }
-                finish_j = min(start_j, brikscounty);
-                //finish_j = max(finish_j+1, 0);
             }
-            //finish_j = max(finish_j + 1, 0);
+            else
+            {
+                finish_j -= 1;
+                if (finish_j > start_j) {
+                    swap(start_j, finish_j);
+                }
+                
+            }
+            finish_j = min(start_j, brikscounty);
             start_j = max(start_j, 0);
-            //start_j = 0;
-            //finish_j = brikscounty;
             
             for (int j = start_j; j < finish_j+1;j++)
             {  
